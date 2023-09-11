@@ -25,6 +25,7 @@ import os
 from PIL import Image
 import functools
 import imgviz
+import numpy as np
 from segment_any.segment_any import SegAny
 from segment_any.gpu_resource import GPUResource_Thread, osplatform
 import icons_rc
@@ -51,6 +52,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.load_finished = False
         self.polygons:list = []
 
+        self.image_changed = False
+
         self.png_palette = None # 图像拥有调色盘，说明是单通道的标注png文件
         self.instance_cmap = imgviz.label_colormap()
         self.map_mode = MAPMode.LABEL
@@ -58,6 +61,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.current_label:Annotation = None
         self.use_segment_anything = False
         self.gpu_resource_thread = None
+        self.pre_segany = ''
+        self.segany = None
         self.init_ui()
         self.reload_cfg()
 
@@ -65,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.reset_action()
 
     def init_segment_anything(self, model_name, reload=False):
-
+        
         if model_name == '':
             self.use_segment_anything = False
             for name, action in self.pths_actions.items():
@@ -80,8 +85,21 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 action.setChecked(model_name == name)
             self.use_segment_anything = False
             return
-
-        self.segany = SegAny(model_path)
+        try:
+            if self.segany is None:
+                self.segany = SegAny(model_path)
+            elif model_name != self.pre_segany:
+                self.segany = SegAny(model_path)
+            self.pre_segany = model_name
+        except Exception as e:
+            print(e)
+            QtWidgets.QMessageBox.warning(self, 'Warning', 
+                                           'The model of [Segment anything] is not valid. If you want use quick annotate, please download from {}'.format(
+                                               'https://github.com/facebookresearch/segment-anything#model-checkpoints'))
+            for name, action in self.pths_actions.items():
+                action.setChecked(model_name == name)
+            self.use_segment_anything = False
+            return
         self.use_segment_anything = True
         self.statusbar.showMessage('Use the checkpoint named {}.'.format(model_name), 3000)
         for name, action in self.pths_actions.items():
@@ -96,9 +114,26 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.labelGPUResource.setText('cpu')
         else:
             self.labelGPUResource.setText('segment anything unused.')
+        if self.current_index is None or ( -1> self.current_index >= len(self.files_list)):
+            return
+        file_path = os.path.join(self.image_root, self.files_list[self.current_index])
+        image_data = np.array(Image.open(file_path))
+        if image_data.ndim == 3 and image_data.shape[-1] == 3: # 三通道图
+            self.segany.set_image(image_data)
+        elif image_data.ndim == 2: # 单通道图
+            image_data = image_data[:, :, np.newaxis]
+            image_data = np.repeat(image_data, 3, axis=2) # 转换为三通道
+            self.segany.set_image(image_data)
+        elif image_data.ndim == 3 and image_data.shape[-1] > 3: # 多通道
+            self.segany.set_image(image_data[:,:,:3])
+            self.statusbar.showMessage("Segment anything only use the 3 dim with shape {} .".format(image_data.shape))
+        else:
+            self.statusbar.showMessage("Segment anything don't support the image with shape {} .".format(image_data.shape))
 
-        if self.current_index is not None:
-            self.show_image(self.current_index)
+        self.show_image(self.current_index)    
+        # if self.current_index is not None:
+        #     self.image_changed = False
+        #     self.show_image(self.current_index)
 
     def init_ui(self):
         #q
@@ -286,7 +321,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if self.label_root is None:
             self.label_root = dir
             self.actionSave_dir.setStatusTip("Label root: {}".format(self.label_root))
-
+        self.image_changed  = True
         self.show_image(self.current_index)
 
     def save_dir(self):
@@ -322,10 +357,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.scene.clear()
             self.scene.setSceneRect(QtCore.QRectF())
             return
+        if not self.image_changed:
+            self.scene.cancel_draw()
+            return
         try:
+            self.scene.cancel_draw()
+        
             self.polygons.clear()
             self.annos_dock_widget.listWidget.clear()
-            self.scene.cancel_draw()
+            
             file_path = os.path.join(self.image_root, self.files_list[index])
             image_data = Image.open(file_path)
 
@@ -418,6 +458,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_index = 0
             QtWidgets.QMessageBox.warning(self, 'Warning', 'This is the first picture.')
         else:
+            self.image_changed = True
             self.show_image(self.current_index)
 
     def next_image(self):
@@ -434,7 +475,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.current_index = len(self.files_list)-1
             QtWidgets.QMessageBox.warning(self, 'Warning', 'This is the last picture.')
         else:
-            self.show_image(self.current_index)
+            self.image_changed = True
+            self.show_image(self.current_index, True)
 
     def jump_to(self):
         index = self.files_dock_widget.lineEdit_jump.text()
@@ -448,6 +490,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                     return
             index = int(index)-1
             if 0 <= index < len(self.files_list):
+                self.image_changed = True
                 self.show_image(index)
                 self.files_dock_widget.lineEdit_jump.clear()
             else:
@@ -577,6 +620,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         value = self.vertex_size.value()
         self.cfg['vertex_size'] = value
         if self.current_index is not None:
+            # TODO: no clear
+            self.image_changed = False
             self.show_image(self.current_index)
 
     def ISAT_to_VOC(self):

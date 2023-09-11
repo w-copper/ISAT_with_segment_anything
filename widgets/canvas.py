@@ -35,31 +35,24 @@ class AnnotationScene(QtWidgets.QGraphicsScene):
         self.pressd = False
 
     def load_image(self, image_path:str):
-        self.clear()
-        if self.mainwindow.use_segment_anything:
-            self.mainwindow.segany.reset_image()
+        if self.mainwindow.image_changed:
+            self.clear()
 
-        self.image_data = np.array(Image.open(image_path))
-        if self.mainwindow.use_segment_anything and self.mainwindow.can_be_annotated:
-            if self.image_data.ndim == 3 and self.image_data.shape[-1] == 3: # 三通道图
-                self.mainwindow.segany.set_image(self.image_data)
-            elif self.image_data.ndim == 2: # 单通道图
-                self.image_data = self.image_data[:, :, np.newaxis]
-                self.image_data = np.repeat(self.image_data, 3, axis=2) # 转换为三通道
-                self.mainwindow.segany.set_image(self.image_data)
-            else:
-                self.mainwindow.statusbar.showMessage("Segment anything don't support the image with shape {} .".format(self.image_data.shape))
-                
-        self.image_item = QtWidgets.QGraphicsPixmapItem()
-        self.image_item.setZValue(0)
-        self.addItem(self.image_item)
-        self.mask_item = QtWidgets.QGraphicsPixmapItem()
-        self.mask_item.setZValue(1)
-        self.addItem(self.mask_item)
+            self.image_data = np.array(Image.open(image_path))
+       
+            self.image_item = QtWidgets.QGraphicsPixmapItem()
+            self.image_item.setZValue(0)
+            self.addItem(self.image_item)
+            self.mask_item = QtWidgets.QGraphicsPixmapItem()
+            self.mask_item.setZValue(1)
+            self.addItem(self.mask_item)
 
-        self.image_item.setPixmap(QtGui.QPixmap(image_path))
-        self.setSceneRect(self.image_item.boundingRect())
+            self.image_item.setPixmap(QtGui.QPixmap(image_path))
+            self.setSceneRect(self.image_item.boundingRect())
         self.change_mode_to_view()
+        
+        # for polygon in self.mainwindow.polygons:
+        #     self.addItem(polygon)
 
     def change_mode_to_create(self):
         if self.image_item is None:
@@ -145,6 +138,7 @@ class AnnotationScene(QtWidgets.QGraphicsScene):
 
     def start_segment_anything(self):
         self.draw_mode = DRAWMode.SEGMENTANYTHING
+        
         self.start_draw()
 
     def start_draw_polygon(self):

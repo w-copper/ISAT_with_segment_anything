@@ -3,7 +3,7 @@
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from ui.ISAT_to_VOC_dialog import Ui_Dialog
-from tools.toVOC import TOVOC
+import tools.toVOC as toVOC
 from configs import load_config
 import os
 
@@ -16,7 +16,7 @@ class ISATtoVOCDialog(QtWidgets.QDialog, Ui_Dialog):
         self.label_root = None
         self.save_root = None
 
-        self.converter = TOVOC()
+        self.converter = toVOC.TOVOC()
         self.converter.message.connect(self.print_message)
 
         self.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
