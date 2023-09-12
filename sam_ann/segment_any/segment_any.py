@@ -8,37 +8,37 @@ import torch
 import numpy as np
 import timm
 import os
-
+from sam_ann.configs import CHECKPOINTS
 class SegAny:
     def __init__(self, checkpoint):
-        if 'mobile_sam' in os.path.basename(checkpoint):
+        if 'mobile_sam' in checkpoint:
             # mobile sam
-            from mobile_sam import sam_model_registry, SamPredictor
+            from sam_ann.mobile_sam import sam_model_registry, SamPredictor
             print('- mobile sam!')
             self.model_type = "vit_t"
-        elif 'sam_hq_vit' in os.path.basename(checkpoint):
+        elif 'sam_hq_vit' in checkpoint:
             # sam hq
-            from segment_anything_hq import sam_model_registry, SamPredictor
+            from sam_ann.segment_anything_hq import sam_model_registry, SamPredictor
             print('- sam hq!')
-            if 'vit_b' in os.path.basename(checkpoint):
+            if 'vit_b' in checkpoint:
                 self.model_type = "vit_b"
-            elif 'vit_l' in os.path.basename(checkpoint):
+            elif 'vit_l' in checkpoint:
                 self.model_type = "vit_l"
-            elif 'vit_h' in os.path.basename(checkpoint):
+            elif 'vit_h' in checkpoint:
                 self.model_type = "vit_h"
-            elif 'vit_tiny' in os.path.basename(checkpoint):
+            elif 'vit_tiny' in checkpoint:
                 self.model_type = "vit_tiny"
             else:
                 raise ValueError('The checkpoint named {} is not supported.'.format(checkpoint))
-        elif 'sam_vit' in os.path.basename(checkpoint):
+        elif 'sam_vit' in checkpoint:
             # sam
-            from segment_anything import sam_model_registry, SamPredictor
+            from sam_ann.segment_anything import sam_model_registry, SamPredictor
             print('- sam!')
-            if 'vit_b' in os.path.basename(checkpoint):
+            if 'vit_b' in checkpoint:
                 self.model_type = "vit_b"
-            elif 'vit_l' in os.path.basename(checkpoint):
+            elif 'vit_l' in checkpoint:
                 self.model_type = "vit_l"
-            elif 'vit_h' in os.path.basename(checkpoint):
+            elif 'vit_h' in checkpoint:
                 self.model_type = "vit_h"
             else:
                 raise ValueError('The checkpoint named {} is not supported.'.format(checkpoint))
@@ -47,7 +47,7 @@ class SegAny:
         torch.cuda.empty_cache()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        sam = sam_model_registry[self.model_type](checkpoint=checkpoint)
+        sam = sam_model_registry[self.model_type](checkpoint=os.path.join(CHECKPOINTS, checkpoint))
         sam.to(device=self.device)
         self.predictor_with_point_prompt = SamPredictor(sam)
         self.image = None

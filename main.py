@@ -4,9 +4,11 @@
 
 from PyQt5 import QtWidgets
 import os
-os.environ['SAM_ANN_BASE_DIR'] = os.path.dirname(__file__)
-from sam_ann.widgets.mainwindow import MainWindow
 import sys
+os.environ['SAM_ANN_BASE_DIR'] = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.environ['SAM_ANN_BASE_DIR'], 'lib'))
+from sam_ann import MainWindow
+
 
 
 if __name__ == '__main__':

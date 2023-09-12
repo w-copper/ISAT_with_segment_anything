@@ -40,7 +40,7 @@ class Annotation:
             print('Warning: Except image has 2 or 3 ndim, but get {}.'.format(image.ndim))
         del image
 
-        self.objects:List[Object,...] = []
+        self.objects:List[Object] = []
 
     def load_annotation(self):
         if os.path.exists(self.label_path):

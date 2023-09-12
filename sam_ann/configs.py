@@ -3,9 +3,9 @@ from enum import Enum
 import os
 BASE_DIR = os.environ['SAM_ANN_BASE_DIR']
 
-DEFAULT_CONFIG_FILE = 'default.yaml'
-CONFIG_FILE = 'isat.yaml'
-
+DEFAULT_CONFIG_FILE = os.path.join(BASE_DIR, 'sam_ann', 'default.yaml')
+CONFIG_FILE = os.path.join(BASE_DIR, 'sam_ann', 'isat.yaml')
+CHECKPOINTS = os.path.join(BASE_DIR, 'checkpoints')
 def load_config(file):
     with open(file, 'rb')as f:
         cfg = yaml.load(f.read(), Loader=yaml.FullLoader)

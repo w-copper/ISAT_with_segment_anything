@@ -18,7 +18,7 @@ from sam_ann.widgets.ISAT_to_COCO_dialog import ISATtoCOCODialog
 from sam_ann.widgets.ISAT_to_LABELME_dialog import ISATtoLabelMeDialog
 from sam_ann.widgets.COCO_to_ISAT_dialog import COCOtoISATDialog
 from sam_ann.widgets.canvas import AnnotationScene, AnnotationView
-from sam_ann.configs import STATUSMode, MAPMode, load_config, save_config, CONFIG_FILE, DEFAULT_CONFIG_FILE
+from sam_ann.configs import STATUSMode, MAPMode, load_config, save_config, CONFIG_FILE, DEFAULT_CONFIG_FILE, CHECKPOINTS
 from sam_ann.annotation import Object, Annotation
 from sam_ann.widgets.polygon import Polygon
 from sam_ann.configs import BASE_DIR
@@ -77,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for name, action in self.pths_actions.items():
                 action.setChecked(model_name == name)
             return
-        model_path = os.path.join('segment_any', model_name)
+        model_path = os.path.join(CHECKPOINTS, model_name)
         if not os.path.exists(model_path):
             QtWidgets.QMessageBox.warning(self, 'Warning',
                                           'The checkpoint of [Segment anything] not existed. If you want use quick annotate, please download from {}'.format(
@@ -189,7 +189,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.statusbar.addPermanentWidget(self.labelData)
 
         #
-        model_names = sorted([pth for pth in os.listdir(os.path.join(BASE_DIR, 'checkpoints')) if pth.endswith('.pth') or pth.endswith('.pt')])
+        model_names = sorted([pth for pth in os.listdir(CHECKPOINTS) if pth.endswith('.pth') or pth.endswith('.pt')])
         self.pths_actions = {}
         for model_name in model_names:
             action = QtWidgets.QAction(self)
