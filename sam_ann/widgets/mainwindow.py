@@ -130,7 +130,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage("Segment anything only use the 3 dim with shape {} .".format(image_data.shape))
         else:
             self.statusbar.showMessage("Segment anything don't support the image with shape {} .".format(image_data.shape))
-
+        self.image_changed = False
         self.show_image(self.current_index)    
         # if self.current_index is not None:
         #     self.image_changed = False
@@ -360,6 +360,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         if not self.image_changed:
             self.scene.cancel_draw()
+            self.actionSegment_anything.setEnabled(self.use_segment_anything)
+            self.actionPolygon.setEnabled(True)
+            self.actionSave.setEnabled(True)
+            self.actionBit_map.setEnabled(True)
+            self.actionBackspace.setEnabled(True)
+            self.actionFinish.setEnabled(True)
+            self.actionCancel.setEnabled(True)
+            self.actionVisible.setEnabled(True)
             return
         try:
             self.scene.cancel_draw()
